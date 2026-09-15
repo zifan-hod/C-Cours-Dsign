@@ -1,0 +1,6 @@
+used_car_system
+*.o
+*.exe
+*.out
+.vscode/
+.idea/
