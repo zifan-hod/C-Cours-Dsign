@@ -2,24 +2,25 @@
 #include <iostream>
 #include <string>
 #include "DoubleLinkList.h"   // 复用 Status
+#include "Record.h"          // 基类
 
 // ============================================================================
-//  Order 订单类
+//  Order 订单类（继承 Record）
 //  循环队列里装的就是这个类的对象
-//  字段（最小集）：carVin / buyerId / sellerId —— 关联 Car 和 User
-//  TODO 练习扩展：
-//    string orderId;     // 订单号，如 O20260914001
-//    string createTime;   // 下单时间
-//    double price;        // 成交价（可能 ≠ car.price）
-//    string status;       // 待处理 / 已成交 / 已取消
-//    string remark;       // 备注
+//  字段：
+//    carVin     车架号（关联 Car.vin，一车一单，兼作订单唯一标识）
+//    buyerId    买家 ID
+//    sellerId   卖家 ID
+//    createTime 下单时间
+//  TODO 练习扩展：成交价 price / 订单状态 status / 备注 remark
 // ============================================================================
-class Order
+class Order : public Record
 {
 public:
     std::string carVin;
     std::string buyerId;
     std::string sellerId;
+    std::string createTime;
 
     Order();
     Order(const std::string &vin,
@@ -27,7 +28,8 @@ public:
           const std::string &seller);
     ~Order();
 
-    void Print() const;                                  // 打印到 cout
-    std::string ToLine() const;                          // 序列化为文件一行（用空格分隔）
-    static Order FromLine(const std::string &line);      // 从文件一行反序列化
+    void        Print() const override;                 // 重写基类纯虚函数
+    std::string ToLine() const override;                // 重写：冒号分隔
+    std::string GetKey() const override;                // 重写：返回 carVin
+    static Order FromLine(const std::string &line);     // 静态：从一行还原
 };

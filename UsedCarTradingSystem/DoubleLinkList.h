@@ -1,7 +1,7 @@
 #pragma once
-
 #include <iostream>
-#include <string>
+#include <string> 
+// 
 using namespace std;
 // ============================================================================
 //  循环双链表（带头节点）模板类 —— 严蔚敏《数据结构》风格
@@ -147,8 +147,10 @@ template <typename T> int DoubleLinkList<T>::ListLength() const {
   int number = 0;
   DoubleNode<T> *p = head;
 
-  while (p->next != head &&p = p->next)
+  while (p->next != head) {
+    p = p->next;
     number++;
+  }
   // TODO:
   return number;
 }
@@ -265,20 +267,51 @@ template <typename T> Status DoubleLinkList<T>::ListDelete(int i, T &e) {
     return ERROR;
   DoubleNode<T> *p = head;
   DoubleNode<T> *s = head;
-  if (i == 1) {
-    p->next->next->pre = p;
-    p->next = p->next->next;
-    delete s->next;
-    return OK;
-  }
+
   int step = 1;
+
   while (step < i) {
     p = p->next;
     step++;
   }
-  p->next->next->pre = p;
-  p->next = p->next->next;
-  delete s->next;
+  e = p->next->data;
+  s = p->next;
+
+  // 【可选优化】下面的 if(删尾)/else(非尾) 两个分支其实能合并成两行：
+  //
+  //   p->next = s->next;     // 前驱的 next 跳过 s，指向 s 的后继
+  //   s->next->pre = p;      // s 后继的 pre 指回前驱 p
+  //
+  // 为什么对两种情况都成立？关键看 s->next 是谁：
+  //   · 非尾删除：s->next 是一个真实数据节点（被删节点的后继）
+  //                 → 第一行 p 接上后继；第二行 后继->pre 指回 p   ✓
+  //   · 删尾时：  s 是尾节点，循环链表里 尾->next == head
+  //                 → 第一行 p->next = head；第二行 head->pre = p  ✓
+  //                 正好就是 if 分支手写的那两句！
+  //
+  // 即"尾节点的后继就是 head"这一条循环链表性质，让 head 自动充当了
+  // 那个"后继节点"，所以无需特判。合并后整段为：
+  //
+  //   DoubleNode<T> *p = head;
+  //   for (int k = 1; k < i; ++k) p = p->next;  // p 走到前驱(i=1时p=head)
+  //   DoubleNode<T> *s = p->next;                // 改链前先存死被删节点
+  //   e = s->data;
+  //   p->next = s->next;
+  //   s->next->pre = p;
+  //   delete s;
+  //
+  // 当前带 if/else 的版本逻辑完全正确、可读性也清晰，保留没问题，
+  // 这里只是说明"为什么可以不分支"。
+  if (i == ListLength()) {
+    p->next = head;
+    head->pre = p;
+  } else {
+    p->next->next->pre = p;
+    p->next = p->next->next;
+  }
+
+  delete s;
+
   return OK;
 }
 
@@ -304,6 +337,6 @@ void DoubleLinkList<T>::ListTraverse(void (*visit)(const T &)) const {
   DoubleNode<T> *p = head;
   while (p->next != head) {
     p = p->next;
-    cout << p->data << endl;
+    visit(p->data);
   }
 }

@@ -84,6 +84,7 @@ template <typename T>
 Status CirQueue<T>::Pop(T &e)
 {
     // TODO:
+    
     return ERROR;
 }
 

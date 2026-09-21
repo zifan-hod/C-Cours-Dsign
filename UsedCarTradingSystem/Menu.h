@@ -28,8 +28,8 @@ public:
 
     // 主流程
     void Run();
-    void LoadFromFile();            // 启动时从 data/ 读 users.txt / cars.txt / orders.txt
-    void SaveToFile();             // 退出时写回三个文件
+    void LoadFromFile();            // 启动时读当前目录的 users.txt / cars.txt / orders.txt
+    void SaveToFile();             // 退出时写回三个文件（当前目录）
     void InitDefaultAdmin();        // 首次启动无 users.txt 时初始化 admin / 123456
     bool Login();                   // 登录流程，成功后 currentUser 设置好
 
