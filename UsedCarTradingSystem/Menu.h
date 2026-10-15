@@ -1,5 +1,7 @@
 #pragma once
 #include <iostream>
+#include <fcntl.h>
+#include <unistd.h>
 #include "DoubleLinkList.h"
 #include "CirQueue.h"
 #include "car.h"
@@ -17,10 +19,13 @@
 class Menu
 {
 private:
-    DoubleLinkList<User>  *users;
-    DoubleLinkList<Car>   *cars;
-    CirQueue<Order>       *orders;
-    User                  *currentUser;   // 当前登录用户，未登录时为 nullptr
+    DoubleLinkList<User> *users;
+    DoubleLinkList<Car> *cars;
+    CirQueue<Order> *orders;
+    User *currentUser; // 当前登录用户，未登录时为 nullptr
+
+    // 工具：用 open/read 把整个文件读成一个 string；文件不存在返回 ""
+    static std::string ReadWholeFile(const char *path);
 
 public:
     Menu();
@@ -28,14 +33,14 @@ public:
 
     // 主流程
     void Run();
-    void LoadFromFile();            // 启动时读当前目录的 users.txt / cars.txt / orders.txt
-    void SaveToFile();             // 退出时写回三个文件（当前目录）
-    void InitDefaultAdmin();        // 首次启动无 users.txt 时初始化 admin / 123456
-    bool Login();                   // 登录流程，成功后 currentUser 设置好
+    void LoadFromFile();     // 启动时读当前目录的 users.txt / cars.txt / orders.txt
+    void SaveToFile();       // 退出时写回三个文件（当前目录）
+    void InitDefaultAdmin(); // 首次启动无 users.txt 时初始化 admin / 123456
+    bool Login();            // 登录流程，成功后 currentUser 设置好
 
     // 角色菜单
-    void ShowLoginMenu();           // 未登录主菜单
-    void ShowBuyerMenu();           // 买家菜单
-    void ShowSellerMenu();          // 卖家菜单
-    void ShowAdminMenu();           // 管理员菜单
+    void ShowLoginMenu();  // 未登录主菜单
+    void ShowBuyerMenu();  // 买家菜单
+    void ShowSellerMenu(); // 卖家菜单
+    void ShowAdminMenu();  // 管理员菜单
 };

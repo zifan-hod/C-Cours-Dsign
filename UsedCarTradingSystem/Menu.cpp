@@ -1,254 +1,547 @@
 #include "Menu.h"
 #include <ctime>
-#include <fcntl.h> // open + O_WRONLY/O_CREAT/O_TRUNC/O_RDONLY
+#include <fcntl.h>
 #include <fstream>
 #include <sstream>
-#include <unistd.h> // read / write / close
+#include <unistd.h>
 
-Menu::Menu()
-{
+Menu::Menu() {
   users = new DoubleLinkList<User>;
   cars = new DoubleLinkList<Car>;
   orders = new CirQueue<Order>;
   currentUser = nullptr;
 }
 
-Menu::~Menu()
-{
-  // TODO 练习：释放构造函数中 new 出的三个数据结构（自己 new 的自己 delete）
-  //   注意 currentUser 不是 new 出来的，不要在这里释放
+Menu::~Menu() {
+
+
   delete users;
   delete cars;
   delete orders;
 }
 
-// ============================================================================
-//  主流程：加载 → 默认 admin → 登录循环 → 分发 → 写回
-// ============================================================================
-void Menu::Run()
-{
+
+
+
+void Menu::Run() {
   LoadFromFile();
   if (users->ListEmpty())
     InitDefaultAdmin();
 
-  while (true)
-  {
-    if (currentUser == nullptr)
-    {
+  while (true) {
+    if (currentUser == nullptr) {
       ShowLoginMenu();
-    }
-    else if (currentUser->role == "buyer")
-    {
+    } else if (currentUser->role == "buyer") {
       ShowBuyerMenu();
-    }
-    else if (currentUser->role == "seller")
-    {
+    } else if (currentUser->role == "seller") {
       ShowSellerMenu();
-    }
-    else if (currentUser->role == "admin")
-    {
+    } else if (currentUser->role == "admin") {
       ShowAdminMenu();
-    }
-    else
-    {
-      // 未知角色，退出
+    } else {
+
       break;
     }
   }
 
   SaveToFile();
-  std::cout << "再见，数据已写回当前目录\n";
+  cout << "再见，数据已写回当前目录\n";
 }
 
-// ============================================================================
-//  文件读写：Linux 系统调用 open/read/write，文件放【当前目录】
-//  数据格式：每行一个对象，字段用冒号 ':' 分隔
-// ============================================================================
-void Menu::LoadFromFile()
-{
-  // TODO 练习：从当前目录读取 users.txt / cars.txt / orders.txt
-  //
-  //  users.txt 思路：
-  //    1. 以只读方式打开；打不开（文件不存在，第一次运行）直接结束
-  //    2. 准备一块缓冲区，循环 read，每批处理新读到的字节
-  //    3. 逐字节扫描本批内容：
-  //         遇到换行符 → 一行结束，把这行交给 User::FromLine 还原，
-  //                      追加到 users 链表末尾，然后清空行暂存
-  //         否则       → 追加到当前行
-  //    4. 全部读完后，行暂存若还有内容（最后一行可能没换行）同样处理
-  //    5. close
-  //  cars.txt 同样流程，追加到 cars；orders.txt 还原后用 Push 入队
-  int fd = open("users.txt", 0644);
-  int fd_1 = open("cars.txt", 0644);
-  int fd_2 = open("orders.txt", 0644);
-  
+
+
+
+
+
+
+string Menu::ReadWholeFile(const char *path) {
+  int fd = open(path, O_RDONLY);
+  if (fd < 0)
+    return "";
+
+  char buf[4096];
+  string result;
+  ssize_t n = 0;
+
+  while ((n = read(fd, buf, sizeof(buf))) > 0)
+    result.append(buf,
+                  static_cast<size_t>(n));
+
+
+
+  close(fd);
+  return result;
 }
 
-void Menu::SaveToFile()
-{
-  // TODO 练习：把三个数据结构写回当前目录
-  //
-  //  users.txt 思路：
-  //    1. 只写方式打开：不存在就创建、已存在就清空
-  //    2. 从第 1 个遍历到最后一个，逐个取出用户
-  //    3. 每个用户 ToLine 后补一个换行符，write 进文件
-  //    4. close
-  //  cars.txt 同样写法；orders.txt 需自行把队列完整"转一圈"遍历
-  //  （提示：队列只能从队头取，想保留队列可以"出队一个、写回、再入队"）
+void Menu::LoadFromFile() {
+
+  string content = ReadWholeFile("users.txt");
+  size_t start = 0;
+  while (true) {
+    size_t pos = content.find('\n', start);
+    if (pos == string::npos)
+      break;
+    string oneLine = content.substr(start, pos - start);
+    if (!oneLine.empty())
+
+
+      users->ListInsert(users->ListLength() + 1, User::FromLine(oneLine));
+    start = pos + 1;
+  }
+  string tail = content.substr(start);
+  if (!tail.empty())
+    users->ListInsert(users->ListLength() + 1, User::FromLine(tail));
+
+
+  content = ReadWholeFile("cars.txt");
+  start = 0;
+  while (true) {
+    size_t pos = content.find('\n', start);
+    if (pos == string::npos)
+      break;
+    string oneLine = content.substr(start, pos - start);
+    if (!oneLine.empty())
+      cars->ListInsert(cars->ListLength() + 1, Car::FromLine(oneLine));
+    start = pos + 1;
+  }
+  tail = content.substr(start);
+  if (!tail.empty())
+    cars->ListInsert(cars->ListLength() + 1, Car::FromLine(tail));
+
+
+
+  content = ReadWholeFile("orders.txt");
+  start = 0;
+  while (true) {
+    size_t pos = content.find('\n', start);
+    if (pos == string::npos)
+      break;
+    string oneLine = content.substr(start, pos - start);
+    if (!oneLine.empty())
+      orders->Push(Order::FromLine(oneLine));
+    start = pos + 1;
+  }
+  tail = content.substr(start);
+  if (!tail.empty())
+    orders->Push(Order::FromLine(tail));
 }
 
-void Menu::InitDefaultAdmin()
-{
-  // TODO 练习：首次启动没有用户数据时，准备一个管理员账号
-  //   思路：确定管理员的编号、用户名、密码、角色，构造好后加入 users
-  //   也可以顺便准备一两个演示用的账号或车辆
+void Menu::SaveToFile() {
+
+
+  int fd = open("users.txt", O_WRONLY | O_CREAT | O_TRUNC, 0644);
+  if (fd >= 0) {
+    for (int i = 1; i <= users->ListLength(); ++i) {
+      User u;
+      users->GetElem(i, u);
+      string s = u.ToLine() + "\n";
+      write(fd, s.c_str(), s.size());
+    }
+    close(fd);
+  }
+
+
+  fd = open("cars.txt", O_WRONLY | O_CREAT | O_TRUNC, 0644);
+  if (fd >= 0) {
+    for (int i = 1; i <= cars->ListLength(); ++i) {
+      Car c;
+      cars->GetElem(i, c);
+      string s = c.ToLine() + "\n";
+      write(fd, s.c_str(), s.size());
+    }
+    close(fd);
+  }
+
+
+
+
+  fd = open("orders.txt", O_WRONLY | O_CREAT | O_TRUNC, 0644);
+  if (fd >= 0) {
+    int cnt = orders->Length();
+    for (int i = 0; i < cnt; ++i) {
+      Order o;
+      orders->Pop(o);
+      string s = o.ToLine() + "\n";
+      write(fd, s.c_str(), s.size());
+      orders->Push(o);
+    }
+    close(fd);
+  }
 }
 
-// ============================================================================
-//  登录：输入 id + 密码，校验通过则 currentUser 指向该用户
-// ============================================================================
-bool Menu::Login()
-{
-  // TODO 练习：
-  //   string id, pwd;
-  //   cin >> id >> pwd;
-  //   用 LocateElem 在 users 里找 id；
-  //   找到后比较 password，匹配则 currentUser = ...，return true；
-  //   否则提示失败，return false
+void Menu::InitDefaultAdmin() {
+
+
+
+  User user;
+  user.id = "A0001";
+  user.username = "admin";
+  user.password = "914sx2026";
+  user.phone = "19123456789";
+  user.role = "admin";
+  users->ListInsert(users->ListLength() + 1, user);
+}
+
+
+
+
+bool Menu::Login() {
+  string id, pwd;
+  cout << "\n===== 登录 =====\n";
+  cout << "请输入用户ID: " << flush;
+  cin >> id;
+  cout << "请输入密码: " << flush;
+  cin >> pwd;
+
+  User userkey;
+  userkey.id = id;
+
+  DoubleNode<User> *P = users->LocateElem(userkey);
+
+  if (P != nullptr && P->data.password == pwd) {
+    currentUser = &(P->data);
+    cout << "登录成功，欢迎 " << currentUser->username << "\n";
+    return true;
+  }
+
+  cout << "ID 或密码错误，请重试\n";
   return false;
 }
 
-// ============================================================================
-//  菜单打印 —— 这里把菜单结构打全，业务分支留 TODO
-// ============================================================================
 
-void Menu::ShowLoginMenu()
-{
-  std::cout << "\n========== 巴南二手车交易系统 ==========\n";
-  std::cout << " 1. 登录\n";
-  std::cout << " 2. 注册（买家）\n";
-  std::cout << " 0. 退出\n";
-  std::cout << "========================================\n";
-  std::cout << "选择: ";
+
+
+
+void Menu::ShowLoginMenu() {
+  cout << "\n========== 巴南二手车交易系统 ==========\n";
+  cout << " 1. 登录\n";
+  cout << " 2. 注册（买家）\n";
+  cout << " 0. 退出\n";
+  cout << "========================================\n";
+  cout << "选择: ";
   int op = 0;
-  std::cin >> op;
-  switch (op)
-  {
+  cin >> op;
+  if (cin.fail()) {
+    cin.clear();
+    cin.ignore(1024, '\n');
+    op = -1;
+  }
+  switch (op) {
   case 1:
     Login();
     break;
-  case 2:
-    // TODO 练习：注册一个 buyer，插到 users 链表
+  case 2: {
+
+    string id, username, password, phone;
+    cout << "输入用户ID: ";
+    cin >> id;
+    User key;
+    key.id = id;
+    if (users->LocateElem(key) != nullptr) {
+      cout << "该 ID 已存在，注册失败\n";
+      break;
+    }
+    cout << "用户名: ";
+    cin >> username;
+    cout << "密码: ";
+    cin >> password;
+    cout << "电话: ";
+    cin >> phone;
+    User u(id, username, "buyer");
+    u.password = password;
+    u.phone = phone;
+    users->ListInsert(users->ListLength() + 1, u);
+    cout << "注册成功，请登录\n";
     break;
+  }
   case 0:
     SaveToFile();
-    std::cout << "数据已写回，再见\n";
+    cout << "数据已写回，再见\n";
     exit(0);
   default:
+    cout << "无效选择，请输入 0 / 1 / 2\n";
     break;
   }
 }
 
-void Menu::ShowBuyerMenu()
-{
-  std::cout << "\n---- 买家菜单 [" << currentUser->username << "] ----\n";
-  std::cout << " 1. 浏览所有待售车\n";
-  std::cout << " 2. 按品牌搜索\n";
-  std::cout << " 3. 下预订单（入队）\n";
-  std::cout << " 4. 查看我的订单\n";
-  std::cout << " 0. 注销\n";
-  std::cout << "------------------------\n";
-  std::cout << "选择: ";
+void Menu::ShowBuyerMenu() {
+  cout << "\n---- 买家菜单 [" << currentUser->username << "] ----\n";
+  cout << " 1. 浏览所有待售车\n";
+  cout << " 2. 按品牌搜索\n";
+  cout << " 3. 下预订单（入队）\n";
+  cout << " 4. 查看我的订单\n";
+  cout << " 0. 注销\n";
+  cout << "------------------------\n";
+  cout << "选择: ";
   int op = 0;
-  std::cin >> op;
-  switch (op)
-  {
-  case 1:
-    // TODO 练习：cars->ListTraverse([](const Car& c){ if (c.status=="待售")
-    // c.Print(); });
+  cin >> op;
+  if (cin.fail()) {
+    cin.clear();
+    cin.ignore(1024, '\n');
+    op = -1;
+  }
+  switch (op) {
+  case 1: {
+
+    int len = cars->ListLength();
+    bool found = false;
+    for (int i = 1; i <= len; ++i) {
+      Car c;
+      cars->GetElem(i, c);
+      if (c.status == "待售") {
+        c.Print();
+        found = true;
+      }
+    }
+    if (!found)
+      cout << "暂无待售车辆\n";
     break;
-  case 2:
-    // TODO 练习：输入品牌，遍历 cars 找 brand 匹配
+  }
+  case 2: {
+
+    string brand;
+    cout << "输入品牌: ";
+    cin >> brand;
+    bool found = false;
+    int len = cars->ListLength();
+    for (int i = 1; i <= len; ++i) {
+      Car c;
+      cars->GetElem(i, c);
+      if (c.brand == brand) {
+        c.Print();
+        found = true;
+      }
+    }
+    if (!found)
+      cout << "没有该品牌的车辆\n";
     break;
-  case 3:
-    // TODO 练习：输入 vin，找到对应 Car，构造 Order 入队
-    //   注意：要把 Car.status 改成"已预订"
+  }
+  case 3: {
+
+    string vin;
+    cout << "输入车架号(VIN): ";
+    cin >> vin;
+    Car key;
+    key.vin = vin;
+    DoubleNode<Car> *p = cars->LocateElem(key);
+    if (p == nullptr) {
+      cout << "车辆不存在\n";
+    } else if (p->data.status != "待售") {
+      cout << "该车当前状态: " << p->data.status << "，不可预订\n";
+    } else {
+      Order order(vin, currentUser->id, p->data.sellerId);
+      order.createTime = GetNowTime();
+      if (orders->Push(order) == OK) {
+        p->data.status = "已预订";
+        cout << "预订单已提交，等待卖家处理\n";
+      } else {
+        cout << "订单队列已满，提交失败\n";
+      }
+    }
     break;
+  }
   case 4:
-    // TODO 练习：遍历 orders 队列，找 buyerId == currentUser->id 的订单
+
+    {
+      int cnt = orders->Length();
+      bool found = false;
+      for (int i = 0; i < cnt; ++i) {
+        Order o;
+        orders->Pop(o);
+        if (o.buyerId == currentUser->id) {
+          o.Print();
+          found = true;
+        }
+        orders->Push(o);
+      }
+      if (!found)
+        cout << "暂无订单\n";
+    }
     break;
   case 0:
     currentUser = nullptr;
     break;
   default:
+    cout << "无效选择，请输入 0 ~ 4\n";
     break;
   }
 }
 
-void Menu::ShowSellerMenu()
-{
-  std::cout << "\n---- 卖家菜单 [" << currentUser->username << "] ----\n";
-  std::cout << " 1. 上架车\n";
-  std::cout << " 2. 下架车\n";
-  std::cout << " 3. 查看我的车\n";
-  std::cout << " 4. 查看我的订单\n";
-  std::cout << " 0. 注销\n";
-  std::cout << "------------------------\n";
-  std::cout << "选择: ";
+void Menu::ShowSellerMenu() {
+  cout << "\n---- 卖家菜单 [" << currentUser->username << "] ----\n";
+  cout << " 1. 上架车\n";
+  cout << " 2. 下架车\n";
+  cout << " 3. 查看我的车\n";
+  cout << " 4. 查看我的订单\n";
+  cout << " 0. 注销\n";
+  cout << "------------------------\n";
+  cout << "选择: ";
   int op = 0;
-  std::cin >> op;
-  switch (op)
-  {
-  case 1:
-    // TODO 练习：录入 Car 信息，sellerId = currentUser->id，ListInsert 进 cars
+  cin >> op;
+  if (cin.fail()) {
+    cin.clear();
+    cin.ignore(1024, '\n');
+    op = -1;
+  }
+  switch (op) {
+  case 1: {
+
+    Car car;
+    cout << "车架号(VIN): ";
+    cin >> car.vin;
+    Car key;
+    key.vin = car.vin;
+    if (cars->LocateElem(key) != nullptr) {
+      cout << "该车架号已存在\n";
+      break;
+    }
+    cout << "品牌: ";
+    cin >> car.brand;
+    cout << "型号: ";
+    cin >> car.model;
+    cout << "上牌年份: ";
+    cin >> car.year;
+    cout << "里程(km): ";
+    cin >> car.mileage;
+    cout << "售价: ";
+    cin >> car.price;
+    cout << "门店: ";
+    cin >> car.store;
+    car.sellerId = currentUser->id;
+    car.status = "待售";
+    car.createTime = GetNowTime();
+    cars->ListInsert(cars->ListLength() + 1, car);
+    cout << "上架成功\n";
     break;
-  case 2:
-    // TODO 练习：输入 vin，LocateElem 找节点，ListDelete 删除
+  }
+  case 2: {
+
+    string vin;
+    cout << "输入车架号(VIN): ";
+    cin >> vin;
+    int len = cars->ListLength();
+    bool found = false;
+    for (int i = 1; i <= len; ++i) {
+      Car c;
+      cars->GetElem(i, c);
+      if (c.vin == vin) {
+        if (c.sellerId != currentUser->id) {
+          cout << "这不是你的车，不能下架\n";
+        } else {
+          Car del;
+          cars->ListDelete(i, del);
+          cout << "已下架\n";
+        }
+        found = true;
+        break;
+      }
+    }
+    if (!found)
+      cout << "未找到该车\n";
     break;
+  }
   case 3:
-    // TODO 练习：遍历 cars，sellerId 匹配
+
+    {
+      int len = cars->ListLength();
+      bool found = false;
+      for (int i = 1; i <= len; ++i) {
+        Car c;
+        cars->GetElem(i, c);
+        if (c.sellerId == currentUser->id) {
+          c.Print();
+          found = true;
+        }
+      }
+      if (!found)
+        cout << "暂无车辆\n";
+    }
     break;
   case 4:
-    // TODO 练习：遍历 orders，sellerId 匹配
+
+    {
+      int cnt = orders->Length();
+      bool found = false;
+      for (int i = 0; i < cnt; ++i) {
+        Order o;
+        orders->Pop(o);
+        if (o.sellerId == currentUser->id) {
+          o.Print();
+          found = true;
+        }
+        orders->Push(o);
+      }
+      if (!found)
+        cout << "暂无订单\n";
+    }
     break;
   case 0:
     currentUser = nullptr;
     break;
   default:
+    cout << "无效选择，请输入 0 ~ 4\n";
     break;
   }
 }
 
-void Menu::ShowAdminMenu()
-{
-  std::cout << "\n---- 管理员菜单 [admin] ----\n";
-  std::cout << " 1. 查看所有用户\n";
-  std::cout << " 2. 查看所有车辆\n";
-  std::cout << " 3. 处理订单（出队成交）\n";
-  std::cout << " 4. 查看订单队列\n";
-  std::cout << " 0. 注销\n";
-  std::cout << "------------------------\n";
-  std::cout << "选择: ";
+void Menu::ShowAdminMenu() {
+  cout << "\n---- 管理员菜单 [admin] ----\n";
+  cout << " 1. 查看所有用户\n";
+  cout << " 2. 查看所有车辆\n";
+  cout << " 3. 处理订单（出队成交）\n";
+  cout << " 4. 查看订单队列\n";
+  cout << " 0. 注销\n";
+  cout << "------------------------\n";
+  cout << "选择: ";
   int op = 0;
-  std::cin >> op;
-  switch (op)
-  {
+  cin >> op;
+  if (cin.fail()) {
+    cin.clear();
+    cin.ignore(1024, '\n');
+    op = -1;
+  }
+  switch (op) {
   case 1:
-    // TODO 练习：users->ListTraverse([](const User& u){ u.Print(); });
+    if (users->ListEmpty())
+      cout << "暂无用户\n";
+    else
+      users->ListTraverse([](const User &u) { u.Print(); });
     break;
   case 2:
-    // TODO 练习：cars->ListTraverse([](const Car& c){ c.Print(); });
+    if (cars->ListEmpty())
+      cout << "暂无车辆\n";
+    else
+      cars->ListTraverse([](const Car &c) { c.Print(); });
     break;
-  case 3:
-    // TODO 练习：orders->Pop(order)，把对应 Car.status 改成"已售出"
+  case 3: {
+
+    Order order;
+    if (orders->Pop(order) == ERROR) {
+      cout << "订单队列为空\n";
+    } else {
+      Car key;
+      key.vin = order.carVin;
+      DoubleNode<Car> *p = cars->LocateElem(key);
+      if (p != nullptr) {
+        p->data.status = "已售出";
+        cout << "已成交: VIN=" << order.carVin << " 买家=" << order.buyerId
+             << "\n";
+      } else {
+        cout << "订单对应车辆不存在，跳过\n";
+      }
+    }
     break;
+  }
   case 4:
-    // TODO 练习：orders->Traverse([](const Order& o){ o.Print(); });
+    if (orders->Empty())
+      cout << "订单队列为空\n";
+    else
+      orders->Traverse([](const Order &o) { o.Print(); });
     break;
   case 0:
     currentUser = nullptr;
     break;
   default:
+    cout << "无效选择，请输入 0 ~ 4\n";
     break;
   }
 }

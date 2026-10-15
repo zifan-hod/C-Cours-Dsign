@@ -8,22 +8,61 @@ Order::Order(const std::string &vin, const std::string &buyer,
 
 Order::~Order() {}
 
-// TODO 练习：cout 打印一笔订单的所有字段
-void Order::Print() const {
-  // TODO:
+
+void Order::Print() const
+{
+  // 列宽（按"显示宽度"算，中文占 2 列）
+  const int W_VIN    = 18;
+  const int W_BUYER  = 12;
+  const int W_SELLER = 12;
+  const int W_TIME   = 20;
+
+  // 表头
+  printField("车架号",   W_VIN);
+  printField("买家ID",   W_BUYER);
+  printField("卖家ID",   W_SELLER);
+  printField("下单时间", W_TIME);
+  cout << "\n";
+
+  // 分隔线
+  cout << string(W_VIN + W_BUYER + W_SELLER + W_TIME, '-') << "\n";
+
+  // 数据行（列宽与表头完全一致）
+  printField(carVin,     W_VIN);
+  printField(buyerId,    W_BUYER);
+  printField(sellerId,   W_SELLER);
+  printField(createTime, W_TIME);
+  cout << "\n";
 }
 
-// TODO 练习：把全部字段序列化成一行字符串，字段之间用冒号 ':' 分隔
-std::string Order::ToLine() const {
-  // TODO:
-  return "";
+
+std::string Order::ToLine() const
+{
+
+  ostringstream os;
+  os << carVin << ':' << buyerId << ':' << sellerId << ':' << createTime;
+  return os.str();
 }
 
-// TODO 练习：按冒号把 line 拆回 4 个字段
-Order Order::FromLine(const std::string &line) {
-  // TODO:
-  return Order();
+
+Order Order::FromLine(const std::string &line)
+{
+
+  Order Orders;
+  size_t pos = 0;
+  size_t start = 0;
+  ostringstream os;
+  for (int i = 0; i < 3; i++)
+  {
+    pos = line.find(":", start);
+    os << line.substr(start, pos - start) << " ";
+    start = pos + 1;
+  }
+  istringstream is(os.str());
+  is >> Orders.carVin >> Orders.buyerId >> Orders.sellerId;
+  Orders.createTime = line.substr(start);
+  return Orders;
 }
 
-// GetKey：返回唯一标识车架号（一车一单）
+
 std::string Order::GetKey() const { return carVin; }

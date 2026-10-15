@@ -1,7 +1,7 @@
 #pragma once
 #include <iostream>
-#include <string> 
-// 
+#include <string>
+//
 using namespace std;
 // ============================================================================
 //  循环双链表（带头节点）模板类 —— 严蔚敏《数据结构》风格
@@ -24,7 +24,9 @@ typedef int Status;
 
 // 双链表节点
 //  C++ 里 struct 也能有构造函数，默认成员 public，方便外部访问字段
-template <typename T> struct DoubleNode {
+template <typename T>
+struct DoubleNode
+{
   T data;
   DoubleNode<T> *pre;
   DoubleNode<T> *next;
@@ -38,7 +40,9 @@ template <typename T> struct DoubleNode {
 // 循环双链表（带头节点）
 //  空表：head->next == head->pre == head
 //  非空：head->next 指向第一个数据节点；尾节点 next 指回 head
-template <typename T> class DoubleLinkList {
+template <typename T>
+class DoubleLinkList
+{
 private:
   DoubleNode<T> *head;
 
@@ -68,15 +72,20 @@ public:
 //  模板成员函数实现
 // ============================================================================
 
-template <typename T> DoubleLinkList<T>::DoubleLinkList() {
+template <typename T>
+DoubleLinkList<T>::DoubleLinkList()
+{
   head = new DoubleNode<T>;
   head->next = head;
   head->pre = head;
 }
 
-template <typename T> DoubleLinkList<T>::~DoubleLinkList() { Destroy(); }
+template <typename T>
+DoubleLinkList<T>::~DoubleLinkList() { Destroy(); }
 
-template <typename T> Status DoubleLinkList<T>::Init() {
+template <typename T>
+Status DoubleLinkList<T>::Init()
+{
   if (head == nullptr)
     head = new DoubleNode<T>;
   head->next = head;
@@ -84,10 +93,13 @@ template <typename T> Status DoubleLinkList<T>::Init() {
   return OK;
 }
 
-template <typename T> Status DoubleLinkList<T>::Destroy() {
+template <typename T>
+Status DoubleLinkList<T>::Destroy()
+{
   // 循环链表终止条件是回到 head，不是 nullptr
   DoubleNode<T> *p = head->next;
-  while (p != head) {
+  while (p != head)
+  {
     DoubleNode<T> *q = p; // 先存住当前节点
     p = p->next;          // 再前进
     delete q;             // C++ 用 delete
@@ -113,7 +125,9 @@ template <typename T> Status DoubleLinkList<T>::Destroy() {
 //   head->next = head;
 //   head->pre  = head;
 //   return OK;
-template <typename T> Status DoubleLinkList<T>::Clear() {
+template <typename T>
+Status DoubleLinkList<T>::Clear()
+{
   // TODO:
   Destroy();
   Init();
@@ -121,7 +135,9 @@ template <typename T> Status DoubleLinkList<T>::Clear() {
 }
 
 // TODO 练习：head->next == head 即空
-template <typename T> bool DoubleLinkList<T>::ListEmpty() const {
+template <typename T>
+bool DoubleLinkList<T>::ListEmpty() const
+{
   // TODO:
   if (head->next == head)
     return true;
@@ -143,11 +159,14 @@ template <typename T> bool DoubleLinkList<T>::ListEmpty() const {
 //       p = p->next;
 //   }
 //   return number;
-template <typename T> int DoubleLinkList<T>::ListLength() const {
+template <typename T>
+int DoubleLinkList<T>::ListLength() const
+{
   int number = 0;
   DoubleNode<T> *p = head;
 
-  while (p->next != head) {
+  while (p->next != head)
+  {
     p = p->next;
     number++;
   }
@@ -162,7 +181,9 @@ template <typename T> int DoubleLinkList<T>::ListLength() const {
 //   q 从 head 出发走 i 步：i=1 落在第 1 个数据节点，i=len 落在尾节点，位置准确
 //   i<=0、空表（len=0 时 i>len 拦截）、超长都拦住了
 //   小冗余：i<=0 就是 i<1；ListEmpty() 时 len=0，i>len 也会拦截，不影响正确性
-template <typename T> Status DoubleLinkList<T>::GetElem(int i, T &e) const {
+template <typename T>
+Status DoubleLinkList<T>::GetElem(int i, T &e) const
+{
   // TODO:
   int len = ListLength();
   if (i > len || ListEmpty() || i <= 0)
@@ -183,10 +204,12 @@ template <typename T> Status DoubleLinkList<T>::GetElem(int i, T &e) const {
 //   这也是之前删掉 ListUpdate 的原因——拿到指针后修改不需要专门函数
 //   提醒：用的时候 T 必须支持 ==，Car/User 里要写 operator==
 template <typename T>
-DoubleNode<T> *DoubleLinkList<T>::LocateElem(const T &key) const {
+DoubleNode<T> *DoubleLinkList<T>::LocateElem(const T &key) const
+{
   // TODO:
   DoubleNode<T> *p = head;
-  while (p->next != head) {
+  while (p->next != head)
+  {
     p = p->next;
     if (p->data == key)
       return p;
@@ -212,13 +235,16 @@ DoubleNode<T> *DoubleLinkList<T>::LocateElem(const T &key) const {
 //     DoubleNode<T> *p = new DoubleNode<T>(e);
 //     注意括号里的 e 必须传进去，否则新节点 data 是默认空值，插入了个寂寞
 //   下面 4 行指针改接顺序是对的 ✓（p->next 先存住了旧后继），p 修好后不用动
-template <typename T> Status DoubleLinkList<T>::ListInsert(int i, const T &e) {
+template <typename T>
+Status DoubleLinkList<T>::ListInsert(int i, const T &e)
+{
   // TODO:
   if (i > ListLength() + 1 || i < 1)
     return ERROR;
   DoubleNode<T> *s = head;
   int number = 1;
-  while (number < i) {
+  while (number < i)
+  {
     s = s->next;
     number++;
   }
@@ -261,7 +287,9 @@ template <typename T> Status DoubleLinkList<T>::ListInsert(int i, const T &e) {
 //        delete del;                      // 最后 delete 临时指针
 //   【设计建议】i == 1 的特殊分支其实多余：通用分支里 p 从 head 走 i-1 步，
 //      i=1 时一步不走 p 就是 head，天然处理。两套逻辑反而增加维护负担
-template <typename T> Status DoubleLinkList<T>::ListDelete(int i, T &e) {
+template <typename T>
+Status DoubleLinkList<T>::ListDelete(int i, T &e)
+{
   // TODO:
   if (i < 1 || i > ListLength())
     return ERROR;
@@ -270,7 +298,8 @@ template <typename T> Status DoubleLinkList<T>::ListDelete(int i, T &e) {
 
   int step = 1;
 
-  while (step < i) {
+  while (step < i)
+  {
     p = p->next;
     step++;
   }
@@ -302,10 +331,13 @@ template <typename T> Status DoubleLinkList<T>::ListDelete(int i, T &e) {
   //
   // 当前带 if/else 的版本逻辑完全正确、可读性也清晰，保留没问题，
   // 这里只是说明"为什么可以不分支"。
-  if (i == ListLength()) {
+  if (i == ListLength())
+  {
     p->next = head;
     head->pre = p;
-  } else {
+  }
+  else
+  {
     p->next->next->pre = p;
     p->next = p->next->next;
   }
@@ -332,10 +364,12 @@ template <typename T> Status DoubleLinkList<T>::ListDelete(int i, T &e) {
 //        cars->ListTraverse([](const Car& c){ if (c.status=="待售") c.Print();
 //        });
 template <typename T>
-void DoubleLinkList<T>::ListTraverse(void (*visit)(const T &)) const {
+void DoubleLinkList<T>::ListTraverse(void (*visit)(const T &)) const
+{
   // TODO:
   DoubleNode<T> *p = head;
-  while (p->next != head) {
+  while (p->next != head)
+  {
     p = p->next;
     visit(p->data);
   }

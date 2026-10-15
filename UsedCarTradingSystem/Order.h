@@ -1,8 +1,10 @@
 #pragma once
 #include <iostream>
 #include <string>
-#include "DoubleLinkList.h"   // 复用 Status
-#include "Record.h"          // 基类
+#include <iomanip>
+#include <sstream>
+#include "DoubleLinkList.h" // 复用 Status
+#include "Record.h"         // 基类
 
 // ============================================================================
 //  Order 订单类（继承 Record）
@@ -17,19 +19,19 @@
 class Order : public Record
 {
 public:
-    std::string carVin;
-    std::string buyerId;
-    std::string sellerId;
-    std::string createTime;
+    string carVin;
+    string buyerId;
+    string sellerId;
+    string createTime;
 
     Order();
-    Order(const std::string &vin,
-          const std::string &buyer,
-          const std::string &seller);
+    Order(const string &vin,
+          const string &buyer,
+          const string &seller);
     ~Order();
 
-    void        Print() const override;                 // 重写基类纯虚函数
-    std::string ToLine() const override;                // 重写：冒号分隔
-    std::string GetKey() const override;                // 重写：返回 carVin
-    static Order FromLine(const std::string &line);     // 静态：从一行还原
+    void Print() const override;                    // 重写基类纯虚函数
+    std::string ToLine() const override;            // 重写：冒号分隔
+    std::string GetKey() const override;            // 重写：返回 carVin
+    static Order FromLine(const std::string &line); // 静态：从一行还原
 };
